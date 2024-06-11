@@ -74,8 +74,8 @@ async function run() {
       
 
       //   user related apis
-      
-    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
+    //   i have verify admin and jwt here
+    app.get("/users",  async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     })
@@ -107,8 +107,8 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     })
-
-    app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    // i have to check admin and verifyJWT here
+    app.patch("/users/admin/:id", verifyJWT, verifyAdmin,  async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -119,8 +119,20 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
+      
+    app.patch("/users/tourGuide/:id", verifyJWT, verifyAdmin,  async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "tourGuide",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
     
-    app.delete("/users/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    app.delete("/users/:id", verifyJWT, verifyAdmin,  async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(query);
