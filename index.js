@@ -74,8 +74,7 @@ async function run() {
       
 
       //   user related apis
-    //   i have verify admin and jwt here
-    app.get("/users",  async (req, res) => {
+    app.get("/users", verifyJWT, verifyAdmin,  async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     })
