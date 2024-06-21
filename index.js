@@ -46,12 +46,12 @@ async function run() {
       
       // middleware
     const verifyJWT = (req, res, next) => {
-      const authHeader = req.headers.authorization;
+      const authHeader = req?.headers?.authorization;
       if (!authHeader) {
         return res.status(401).send({ message: "forbidden access" });
       }
       const token = authHeader.split(" ")[1];
-      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      jwt.verify(token, process?.env?.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
           return res.status(403).send({ message: "Forbidden access" });
         }
@@ -69,9 +69,18 @@ async function run() {
       }
       next();
     }
+    const verifyTourGuide = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "tourGuide") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    }
 
 
-      
+    //   ACCESS_TOKEN_SECRET
 
       //   user related apis
     app.get("/users", verifyJWT, verifyAdmin,  async (req, res) => {
@@ -81,9 +90,9 @@ async function run() {
 
     // check admin
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
-      if (req.decoded.email !== email) {
-        res.status(403).send({ message: "forbidden access" ,admin: false });
+      const email = req?.params?.email;
+      if (email !== req?.decoded?.email) {
+        res.status(403).send({ message: "forbidden access" ,admin: false, tourGuide: false });
       }
       const query = { email: email };
       const user = await userCollection.findOne(query);
@@ -93,6 +102,21 @@ async function run() {
         
       }
       res.send({ admin });
+    });
+    //   check tourGuide
+    app.get("/users/tourGuide/:email", verifyJWT, async (req, res) => {
+      const email = req?.params?.email;
+      if ( email !== req?.decoded?.email  ) {
+        res.status(403).send({ message: "forbidden access" ,admin: false, tourGuide: false });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let tourGuide = false;
+      if (user) {
+        tourGuide = user?.role === "tourGuide";
+        
+      }
+      res.send({ tourGuide });
     });
 
 
@@ -154,12 +178,12 @@ async function run() {
     });
     app.get("/ourPackages/:id",  async (req, res) => {
       const id = req.params.id;
-      const query = { _id: id};
+      const query = { _id: new ObjectId(id)};
       const result = await packageCollection.findOne(query);
       res.send(result);
     });
 
-    app.post("/ourPackages", async (req, res) => {
+    app.post("/ourPackages", verifyJWT, verifyAdmin,  async (req, res) => {
       const newItem = req.body;
       const result = await packageCollection.insertOne(newItem);
       res.send(result);
