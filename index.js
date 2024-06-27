@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId, Timestamp } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gvtp0gh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -88,6 +88,14 @@ async function run() {
       res.send(result);
     })
 
+
+    app.get("/users/:email", async (req, res) => {
+      const email = req?.params?.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      res.send(user);
+    })
+
     // check admin
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req?.params?.email;
@@ -137,6 +145,8 @@ async function run() {
       const updateDoc = {
         $set: {
           role: "admin",
+          status: "verified",
+          Timestamp: Date.now(),
         },
       };
       const result = await userCollection.updateOne(filter, updateDoc);
@@ -149,12 +159,57 @@ async function run() {
       const updateDoc = {
         $set: {
           role: "tourGuide",
+          status: "verified",
+          Timestamp: Date.now(),
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+    app.patch("/users/makeUser/:id", verifyJWT, verifyAdmin,  async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "user",
+          status: "verified",
+          Timestamp: Date.now(),
         },
       };
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
     
+    app.put("/users", async (req, res) => {
+      const user = req.body;
+       const filter = { email: user?.email };
+      const isExistingUser = await userCollection.findOne(filter);
+      if (isExistingUser) {
+        if (user?.status === "requested") {
+         const result = await userCollection.updateOne(filter, {
+           $set: {
+             status: user?.status,
+           },
+         })
+          return res.send(result);
+        
+       } else {
+         return res.send({ message: "User already exists", insertedId: null });
+      }
+      } 
+     
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...user,
+          Timestamp: Date.now(),
+      }, };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    })
+
+
+
     app.delete("/users/:id", verifyJWT, verifyAdmin,  async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
