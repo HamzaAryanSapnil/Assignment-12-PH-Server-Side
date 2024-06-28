@@ -3,7 +3,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const app = express();
 const cors = require("cors");
-// const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 3000;
 
 app.use(cors());
@@ -111,6 +111,22 @@ async function run() {
       }
       res.send({ admin });
     });
+
+
+    // get all tourGuides
+    app.get("/allTourGuides", async (req, res) => {
+  try {
+    const query = {  role: "tourGuide" };
+   
+    const result = await userCollection.find(query).toArray();
+ 
+    res.send(result);
+  } catch (err) {
+  
+    res.status(500).send('Internal Server Error');
+  }
+});
+
     //   check tourGuide
     app.get("/users/tourGuide/:email", verifyJWT, async (req, res) => {
       const email = req?.params?.email;
@@ -181,32 +197,41 @@ async function run() {
     });
     
     app.put("/users", async (req, res) => {
-      const user = req.body;
-       const filter = { email: user?.email };
-      const isExistingUser = await userCollection.findOne(filter);
-      if (isExistingUser) {
-        if (user?.status === "requested") {
-         const result = await userCollection.updateOne(filter, {
-           $set: {
-             status: user?.status,
-           },
-         })
-          return res.send(result);
-        
-       } else {
-         return res.send({ message: "User already exists", insertedId: null });
+  const user = req.body;
+  const filter = { email: user?.email };
+
+
+  try {
+    const isExistingUser = await userCollection.findOne(filter);
+  
+
+    if (isExistingUser) {
+      if (user?.status === "requested") {
+        const result = await userCollection.updateOne(filter, {
+          $set: { status: user?.status },
+        });
+        return res.send(result);
+      } else {
+        return res.send({ message: "User already exists", insertedId: null });
       }
-      } 
-     
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          ...user,
-          Timestamp: Date.now(),
-      }, };
-      const result = await userCollection.updateOne(filter, updateDoc, options);
-      res.send(result);
-    })
+    }
+
+    const options = { upsert: true };
+    const updateDoc = {
+      $set: {
+        ...user,
+        Timestamp: Date.now(),
+      },
+    };
+    const result = await userCollection.updateOne(filter, updateDoc, options);
+  
+    res.send(result);
+  } catch (error) {
+
+    res.status(500).send({ message: "Internal server error" });
+  }
+});
+
 
 
 
@@ -277,6 +302,37 @@ async function run() {
       res.send(result);
     });
 
+    //   payment related apis
+    app.get("/payments", verifyJWT, async (req, res) => {
+      const email = req?.query?.email;
+       if ( email !== req?.decoded?.email  ) {
+        res.status(403).send({ message: "forbidden access"  });
+      }
+      const query = { email: email };
+      const result = await paymentsCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+      res.send(result);
+    });
+
+    // payment intent
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log("amount inside the intent: ", amount);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    })
 
 
 
