@@ -251,7 +251,31 @@ async function run() {
     });
       
 
+    // if tour guide rejected the tour then the status will be rejected
+    app.patch("/tourGuideAssignedTours/rejected/:id", verifyJWT, verifyTourGuide, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: "rejected",
+        },
+      };
+      const result = await paymentsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
+    // if tour guide approved the tour then the status will be approved
+    app.patch("/tourGuideAssignedTours/approved/:id", verifyJWT, verifyTourGuide, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: "approved",
+        },
+      };
+      const result = await paymentsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
 
 
@@ -323,6 +347,14 @@ async function run() {
     app.post("/payments", async (req, res) => {
       const payment = req.body;
       const result = await paymentsCollection.insertOne(payment);
+      res.send(result);
+    });
+
+    // i need to delete payement after booking
+    app.delete("/payments/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await paymentsCollection.deleteOne(query);
       res.send(result);
     });
 
