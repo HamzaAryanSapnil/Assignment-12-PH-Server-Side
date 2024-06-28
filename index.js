@@ -243,9 +243,9 @@ async function run() {
     });
     
     // Tour guide assigned tours. while booking i saved tour guide id email in payment collection
-    app.get("/tourGuideAssignedTours/:email", async (req, res) => {
+    app.get("/tourGuideAssignedTours/:email", verifyJWT, verifyTourGuide, async (req, res) => {
       const email = req.params.email;
-      const query = { email: email };
+      const query = { tourGuideEmail: email };
       const result = await paymentsCollection.find(query).toArray();
       res.send(result);
     });
