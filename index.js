@@ -397,7 +397,7 @@ async function run() {
 
     
     app.get("/tour_story", async (req, res) => {
-      const result = await reviewsCollection.find().limit(10).toArray();
+      const result = await reviewsCollection.find().toArray();
       res.send(result);
     })
     
