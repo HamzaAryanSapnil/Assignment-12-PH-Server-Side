@@ -140,6 +140,22 @@ async function run() {
   }
 });
 
+    //! get a single tour guide
+    app.get("/allTourGuides/:id", async (req, res) => {
+      const id = req.params.id
+       try {
+    const query = {  role: "tourGuide" , _id: new ObjectId(id)  };
+   
+    const result = await userCollection.findOne(query);
+ 
+    res.send(result);
+  } catch (err) {
+  
+    res.status(500).send('Internal Server Error');
+      }
+      
+    })
+    
     //   check tourGuide
     app.get("/users/tourGuide/:email", verifyJWT, async (req, res) => {
       const email = req?.params?.email;
